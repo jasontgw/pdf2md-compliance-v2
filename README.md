@@ -1,8 +1,8 @@
 # pdf2md-compliance
 
-A **local-only, offline** Node.js CLI tool that converts PDF files to Markdown with compliance-grade extensions. All processing runs entirely on the local filesystem — no files are ever uploaded to any external server or API.
+A **local-only, offline** Node.js tool that converts PDF files to Markdown with compliance-grade extensions. Available as both a **CLI** and a **local web GUI**. All processing runs entirely on the local filesystem — no files are ever uploaded to any external server or API.
 
-Built on the [`@opendocsg/pdf2md`](https://github.com/opengovsg/pdf2md) library with compliance extensions including per-page markers, SHA-256 checksums, structured audit manifests, and scanned-PDF rejection.
+Built on the [`@opendocsg/pdf2md`](https://github.com/opengovsg/pdf2md) library with compliance extensions including per-page markers, table structure preservation, SHA-256 checksums, structured audit manifests, and scanned-PDF rejection.
 
 ---
 
@@ -12,7 +12,8 @@ Built on the [`@opendocsg/pdf2md`](https://github.com/opengovsg/pdf2md) library 
 - [Requirements](#requirements)
 - [Setup on macOS / Apple Silicon](#setup-on-macos--apple-silicon)
 - [Verifying Native arm64 Execution](#verifying-native-arm64-execution)
-- [Usage](#usage)
+- [GUI — Local Web Interface](#gui--local-web-interface)
+- [Usage (CLI)](#usage-cli)
 - [Output Folder Structure](#output-folder-structure)
 - [Manifest Fields Reference](#manifest-fields-reference)
 - [Scanned-PDF Rejection Logic](#scanned-pdf-rejection-logic)
@@ -35,9 +36,10 @@ Built on the [`@opendocsg/pdf2md`](https://github.com/opengovsg/pdf2md) library 
 | **Audit manifest** | Writes a `manifest.json` with full provenance metadata for every conversion job |
 | **Structured logging** | Writes a `conversion.log` with timestamped entries for every processing step |
 | **Input archiving** | Copies the original PDF to an `input-archive/` folder with a `.sha256` sidecar file |
-| **Batch processing** | Accepts a folder as input and processes all PDFs, continuing on per-file errors |
+| **Batch processing** | Accepts a folder as input (CLI) or multiple files at once (GUI), continuing on per-file errors |
 | **Offline / local-only** | Zero network calls, no telemetry, no external API dependencies |
 | **arm64 native** | Designed and tested on Apple Silicon (macOS arm64); no Rosetta emulation required |
+| **Local web GUI** | Windows 95-styled browser interface for drag-and-drop single and batch conversion |
 
 ---
 
@@ -96,8 +98,8 @@ node -p process.arch   # should print: arm64
 ### 2. Clone and install
 
 ```bash
-git clone <repository-url>
-cd pdf2md-compliance
+git clone https://github.com/jasontgw/pdf2md-compliance-v2.git
+cd pdf2md-compliance-v2
 npm install
 ```
 
@@ -131,7 +133,39 @@ node -e "console.log({ arch: process.arch, platform: process.platform, version: 
 
 ---
 
-## Usage
+## GUI — Local Web Interface
+
+A Windows 95-styled local web GUI is included for users who prefer a point-and-click experience over the terminal.
+
+### Option A — Double-click launcher (recommended)
+
+After cloning and running `npm install` once, simply double-click **`Start GUI.command`** in the repository root. macOS will open a Terminal window, start the server, and launch the browser automatically at `http://localhost:3000`.
+
+> **First-time setup:** macOS may block the file with a security warning. Right-click `Start GUI.command` → **Open** → **Open** to allow it once. Subsequent double-clicks will work without the prompt.
+
+### Option B — Terminal command
+
+```bash
+npm run gui
+```
+
+The browser opens automatically. Press `Ctrl+C` in the terminal to stop the server.
+
+### GUI Features
+
+| Feature | Description |
+|---|---|
+| **Drag-and-drop** | Drop one or multiple PDF files directly onto the drop zone |
+| **Browse to select** | Click the drop zone to open a file picker |
+| **Auto SHA-256 checksum** | Computed on every input file before conversion begins |
+| **Batch conversion** | All selected files are processed sequentially |
+| **Live progress log** | Displayed in a retro terminal-style window with colour-coded status |
+| **Results table** | Shows status, page count, input and output checksums, and a download link for each `.md` file |
+| **Custom output folder** | Leave blank to use the default `~/pdf2md-output` |
+
+---
+
+## Usage (CLI)
 
 ```
 pdf2md-compliance --input <path> --output <path> [options]
@@ -310,7 +344,7 @@ node --experimental-vm-modules node_modules/.bin/jest --runInBand --testPathPatt
 | Suite | What it covers |
 |---|---|
 | `page-markers.test.js` | Page marker format, count, and ordering for N-page PDFs |
-| `table-preservation.test.js`| Verification of GFM pipe-table reconstruction from columnar PDF text |
+| `table-preservation.test.js` | Verification of GFM pipe-table reconstruction from columnar PDF text |
 | `checksum.test.js` | SHA-256 accuracy, determinism, manifest checksum correctness |
 | `scan-rejection.test.js` | Scanned-PDF detection, rejection, error messages, no partial output |
 | `manifest-log.test.js` | Manifest fields, log creation, archive structure, input file integrity |
@@ -405,16 +439,21 @@ This is the content of page 2...
 ## Architecture
 
 ```
-pdf2md-compliance/
+pdf2md-compliance-v2/
 ├── src/
 │   ├── cli.js              ← CLI entry point (CommonJS shebang, loads ESM)
 │   ├── batch-runner.mjs    ← Discovers PDFs, runs jobs sequentially
 │   ├── job-runner.mjs      ← Orchestrates a single conversion job
-│   ├── converter.mjs       ← Page-by-page PDF → Markdown conversion
+│   ├── converter.mjs       ← Page-by-page PDF → Markdown conversion (positional table reconstruction)
 │   ├── scan-detector.mjs   ← Scanned-PDF pre-filter (pdfjs-dist via unpdf)
 │   ├── compliance.mjs      ← Checksums, manifest, archive, logging
 │   ├── index.mjs           ← Public programmatic API exports
 │   └── pdfjs-helper.mjs    ← (reference) pdfjs-dist ESM wrapper
+├── gui/
+│   ├── server.mjs          ← Local Express server (file upload, SHA-256, SSE progress)
+│   └── public/
+│       └── index.html      ← Windows 95-styled single-page GUI
+├── Start GUI.command        ← Double-clickable macOS launcher
 ├── tests/
 │   ├── helpers/
 │   │   └── create-test-pdfs.mjs  ← In-memory PDF fixture generator

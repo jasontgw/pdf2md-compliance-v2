@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pdf2md-compliance</title>
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #008080;
+      font-family: "MS Sans Serif", "Segoe UI", Tahoma, sans-serif;
+      font-size: 11px;
+      color: #000;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 12px 48px;
+    }
+
+    /* ── Win95 Window ─────────────────────────────────────────────────────── */
+    .window {
+      background: #c0c0c0;
+      border-top: 2px solid #fff;
+      border-left: 2px solid #fff;
+      border-right: 2px solid #808080;
+      border-bottom: 2px solid #808080;
+      width: 100%;
+      max-width: 680px;
+      margin-bottom: 16px;
+    }
+
+    .title-bar {
+      background: linear-gradient(to right, #000080, #1084d0);
+      color: #fff;
+      font-weight: bold;
+      font-size: 11px;
+      padding: 3px 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      user-select: none;
+    }
+
+    .title-bar-text { display: flex; align-items: center; gap: 6px; }
+    .title-bar-icon { width: 16px; height: 16px; }
+
+    .title-bar-controls { display: flex; gap: 2px; }
+    .title-btn {
+      width: 16px; height: 14px;
+      background: #c0c0c0;
+      border-top: 1px solid #fff;
+      border-left: 1px solid #fff;
+      border-right: 1px solid #808080;
+      border-bottom: 1px solid #808080;
+      font-size: 9px;
+      font-weight: bold;
+      cursor: default;
+      display: flex; align-items: center; justify-content: center;
+      color: #000;
+      line-height: 1;
+    }
+
+    .window-body { padding: 10px 12px 12px; }
+
+    /* ── Fieldset / Group box ─────────────────────────────────────────────── */
+    fieldset {
+      border: 1px solid #808080;
+      border-top-color: #fff;
+      border-left-color: #fff;
+      padding: 8px 10px 10px;
+      margin-bottom: 10px;
+    }
+    fieldset:last-child { margin-bottom: 0; }
+    legend {
+      font-size: 11px;
+      padding: 0 4px;
+      font-weight: bold;
+    }
+
+    /* ── Drop zone ────────────────────────────────────────────────────────── */
+    #drop-zone {
+      border: 2px dashed #808080;
+      background: #fff;
+      min-height: 80px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+      padding: 12px;
+      text-align: center;
+      transition: background 0.1s;
+    }
+    #drop-zone.drag-over { background: #d4d0c8; }
+    #drop-zone .drop-icon { font-size: 28px; line-height: 1; }
+    #drop-zone p { font-size: 11px; color: #444; }
+    #file-input { display: none; }
+
+    /* ── File list ────────────────────────────────────────────────────────── */
+    #file-list {
+      margin-top: 8px;
+      max-height: 120px;
+      overflow-y: auto;
+      border: 1px inset #808080;
+      background: #fff;
+      padding: 2px 4px;
+    }
+    #file-list:empty { display: none; }
+    .file-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 2px 0;
+      border-bottom: 1px solid #e0e0e0;
+      font-size: 11px;
+    }
+    .file-item:last-child { border-bottom: none; }
+    .file-icon { font-size: 14px; }
+    .file-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-size { color: #666; white-space: nowrap; }
+    .file-remove {
+      cursor: pointer; color: #a00; font-weight: bold; font-size: 12px;
+      background: none; border: none; padding: 0 2px; line-height: 1;
+    }
+
+    /* ── Output dir row ───────────────────────────────────────────────────── */
+    .row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+    .row label { white-space: nowrap; min-width: 80px; }
+    .row input[type="text"] {
+      flex: 1;
+      border-top: 1px solid #808080;
+      border-left: 1px solid #808080;
+      border-right: 1px solid #fff;
+      border-bottom: 1px solid #fff;
+      padding: 2px 4px;
+      font-size: 11px;
+      font-family: inherit;
+      background: #fff;
+    }
+
+    /* ── Buttons ──────────────────────────────────────────────────────────── */
+    .btn-row { display: flex; gap: 6px; justify-content: flex-end; margin-top: 10px; }
+    button {
+      min-width: 75px;
+      padding: 3px 10px;
+      font-size: 11px;
+      font-family: inherit;
+      background: #c0c0c0;
+      border-top: 2px solid #fff;
+      border-left: 2px solid #fff;
+      border-right: 2px solid #808080;
+      border-bottom: 2px solid #808080;
+      cursor: pointer;
+      color: #000;
+    }
+    button:active {
+      border-top: 2px solid #808080;
+      border-left: 2px solid #808080;
+      border-right: 2px solid #fff;
+      border-bottom: 2px solid #fff;
+      padding: 4px 9px 2px 11px;
+    }
+    button:disabled {
+      color: #808080;
+      cursor: default;
+    }
+    button.primary { font-weight: bold; }
+
+    /* ── Progress / log area ──────────────────────────────────────────────── */
+    #progress-window { display: none; }
+
+    #log-box {
+      background: #000080;
+      color: #c0c0c0;
+      font-family: "Courier New", Courier, monospace;
+      font-size: 11px;
+      padding: 6px 8px;
+      min-height: 100px;
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px inset #808080;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    #log-box .log-ok   { color: #00ff00; }
+    #log-box .log-err  { color: #ff6060; }
+    #log-box .log-info { color: #c0c0c0; }
+    #log-box .log-warn { color: #ffff00; }
+
+    /* ── Results table ────────────────────────────────────────────────────── */
+    #results-window { display: none; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+    th {
+      background: #000080;
+      color: #fff;
+      padding: 3px 6px;
+      text-align: left;
+      font-weight: bold;
+      white-space: nowrap;
+    }
+    td {
+      padding: 3px 6px;
+      border-bottom: 1px solid #d0d0d0;
+      vertical-align: top;
+    }
+    tr:nth-child(even) td { background: #e8e8e8; }
+    tr:hover td { background: #000080; color: #fff; }
+    tr:hover td a { color: #adf; }
+
+    .status-ok   { color: #006400; font-weight: bold; }
+    .status-err  { color: #a00000; font-weight: bold; }
+    .status-rej  { color: #804000; font-weight: bold; }
+
+    .hash {
+      font-family: "Courier New", monospace;
+      font-size: 9px;
+      color: #444;
+      word-break: break-all;
+    }
+
+    a.dl-link {
+      color: #000080;
+      text-decoration: underline;
+      cursor: pointer;
+      font-size: 11px;
+    }
+
+    /* ── Status bar ───────────────────────────────────────────────────────── */
+    #status-bar {
+      background: #c0c0c0;
+      border-top: 1px solid #808080;
+      padding: 2px 8px;
+      font-size: 11px;
+      display: flex;
+      gap: 12px;
+    }
+    .status-panel {
+      border-top: 1px solid #808080;
+      border-left: 1px solid #808080;
+      border-right: 1px solid #fff;
+      border-bottom: 1px solid #fff;
+      padding: 1px 6px;
+      flex: 1;
+    }
+
+    /* ── Taskbar ──────────────────────────────────────────────────────────── */
+    #taskbar {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: 28px;
+      background: #c0c0c0;
+      border-top: 2px solid #fff;
+      display: flex;
+      align-items: center;
+      padding: 0 4px;
+      gap: 4px;
+      z-index: 100;
+    }
+    #start-btn {
+      display: flex; align-items: center; gap: 4px;
+      padding: 2px 8px;
+      font-weight: bold;
+      font-size: 11px;
+      min-width: auto;
+    }
+    #clock {
+      margin-left: auto;
+      border-top: 1px solid #808080;
+      border-left: 1px solid #808080;
+      border-right: 1px solid #fff;
+      border-bottom: 1px solid #fff;
+      padding: 2px 8px;
+      font-size: 11px;
+    }
+
+    /* ── Scrollbar ────────────────────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 16px; height: 16px; }
+    ::-webkit-scrollbar-track { background: #c0c0c0; }
+    ::-webkit-scrollbar-thumb {
+      background: #c0c0c0;
+      border-top: 2px solid #fff;
+      border-left: 2px solid #fff;
+      border-right: 2px solid #808080;
+      border-bottom: 2px solid #808080;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Main window ──────────────────────────────────────────────────────────── -->
+<div class="window" id="main-window">
+  <div class="title-bar">
+    <div class="title-bar-text">
+      <svg class="title-bar-icon" viewBox="0 0 16 16" fill="none">
+        <rect x="1" y="1" width="14" height="14" fill="#fff" stroke="#808080"/>
+        <rect x="3" y="3" width="4" height="5" fill="#ff0000"/>
+        <rect x="9" y="3" width="4" height="5" fill="#0000ff"/>
+        <rect x="3" y="9" width="4" height="4" fill="#00aa00"/>
+        <rect x="9" y="9" width="4" height="4" fill="#ffaa00"/>
+      </svg>
+      pdf2md-compliance — PDF to Markdown Converter
+    </div>
+    <div class="title-bar-controls">
+      <div class="title-btn">_</div>
+      <div class="title-btn">□</div>
+      <div class="title-btn">✕</div>
+    </div>
+  </div>
+
+  <div class="window-body">
+
+    <!-- Drop zone -->
+    <fieldset>
+      <legend>Select PDF Files</legend>
+      <div id="drop-zone" onclick="document.getElementById('file-input').click()">
+        <div class="drop-icon">📄</div>
+        <p><strong>Drag &amp; drop PDF files here</strong></p>
+        <p>or click to browse — single or multiple files supported</p>
+      </div>
+      <input type="file" id="file-input" accept=".pdf,application/pdf" multiple />
+      <div id="file-list"></div>
+    </fieldset>
+
+    <!-- Output directory -->
+    <fieldset>
+      <legend>Output Settings</legend>
+      <div class="row">
+        <label for="output-dir">Output folder:</label>
+        <input type="text" id="output-dir" placeholder="Default: ~/pdf2md-output" />
+      </div>
+    </fieldset>
+
+    <!-- Action buttons -->
+    <div class="btn-row">
+      <button id="clear-btn" onclick="clearAll()">Clear</button>
+      <button id="convert-btn" class="primary" onclick="startConversion()">Convert</button>
+    </div>
+
+  </div>
+
+  <div id="status-bar">
+    <div class="status-panel" id="status-text">Ready</div>
+    <div class="status-panel" id="file-count-label">0 file(s) selected</div>
+  </div>
+</div>
+
+<!-- ── Progress window ───────────────────────────────────────────────────────── -->
+<div class="window" id="progress-window">
+  <div class="title-bar">
+    <div class="title-bar-text">⚙ Conversion Progress</div>
+    <div class="title-bar-controls">
+      <div class="title-btn">_</div>
+    </div>
+  </div>
+  <div class="window-body">
+    <fieldset>
+      <legend>Log</legend>
+      <div id="log-box"></div>
+    </fieldset>
+  </div>
+</div>
+
+<!-- ── Results window ────────────────────────────────────────────────────────── -->
+<div class="window" id="results-window">
+  <div class="title-bar">
+    <div class="title-bar-text">✅ Conversion Results</div>
+    <div class="title-bar-controls">
+      <div class="title-btn">_</div>
+      <div class="title-btn">□</div>
+    </div>
+  </div>
+  <div class="window-body">
+    <table>
+      <thead>
+        <tr>
+          <th>File</th>
+          <th>Status</th>
+          <th>Pages</th>
+          <th>Input SHA-256</th>
+          <th>Output SHA-256</th>
+          <th>Download</th>
+        </tr>
+      </thead>
+      <tbody id="results-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── Taskbar ───────────────────────────────────────────────────────────────── -->
+<div id="taskbar">
+  <button id="start-btn">
+    <svg width="16" height="16" viewBox="0 0 16 16">
+      <rect width="7" height="7" x="1" y="1" fill="#ff0000"/>
+      <rect width="7" height="7" x="8" y="1" fill="#00aa00"/>
+      <rect width="7" height="7" x="1" y="8" fill="#0000ff"/>
+      <rect width="7" height="7" x="8" y="8" fill="#ffaa00"/>
+    </svg>
+    Start
+  </button>
+  <div id="clock">00:00</div>
+</div>
+
+<script>
+  // ── Clock ──────────────────────────────────────────────────────────────────
+  function updateClock() {
+    const now = new Date();
+    document.getElementById('clock').textContent =
+      now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+  updateClock();
+  setInterval(updateClock, 10000);
+
+  // ── File management ────────────────────────────────────────────────────────
+  let selectedFiles = [];
+
+  function formatBytes(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
+  function renderFileList() {
+    const list = document.getElementById('file-list');
+    list.innerHTML = '';
+    selectedFiles.forEach((f, i) => {
+      const item = document.createElement('div');
+      item.className = 'file-item';
+      item.innerHTML = `
+        <span class="file-icon">📄</span>
+        <span class="file-name" title="${f.name}">${f.name}</span>
+        <span class="file-size">${formatBytes(f.size)}</span>
+        <button class="file-remove" onclick="removeFile(${i})" title="Remove">✕</button>
+      `;
+      list.appendChild(item);
+    });
+    const count = selectedFiles.length;
+    document.getElementById('file-count-label').textContent =
+      count === 0 ? '0 file(s) selected' : `${count} file(s) selected`;
+    document.getElementById('status-text').textContent =
+      count === 0 ? 'Ready' : `${count} PDF file(s) ready to convert`;
+  }
+
+  function addFiles(fileList) {
+    for (const f of fileList) {
+      if (f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')) {
+        if (!selectedFiles.find(x => x.name === f.name && x.size === f.size)) {
+          selectedFiles.push(f);
+        }
+      }
+    }
+    renderFileList();
+  }
+
+  function removeFile(index) {
+    selectedFiles.splice(index, 1);
+    renderFileList();
+  }
+
+  function clearAll() {
+    selectedFiles = [];
+    document.getElementById('file-input').value = '';
+    document.getElementById('output-dir').value = '';
+    renderFileList();
+    document.getElementById('progress-window').style.display = 'none';
+    document.getElementById('results-window').style.display = 'none';
+    document.getElementById('log-box').innerHTML = '';
+    document.getElementById('results-body').innerHTML = '';
+    document.getElementById('status-text').textContent = 'Ready';
+  }
+
+  // File input change
+  document.getElementById('file-input').addEventListener('change', function () {
+    addFiles(this.files);
+  });
+
+  // Drag & drop
+  const dropZone = document.getElementById('drop-zone');
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    addFiles(e.dataTransfer.files);
+  });
+
+  // ── Logging ────────────────────────────────────────────────────────────────
+  function log(msg, type = 'info') {
+    const box = document.getElementById('log-box');
+    const span = document.createElement('span');
+    span.className = `log-${type}`;
+    span.textContent = msg + '\n';
+    box.appendChild(span);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  // ── Conversion ─────────────────────────────────────────────────────────────
+  async function startConversion() {
+    if (selectedFiles.length === 0) {
+      alert('Please select at least one PDF file.');
+      return;
+    }
+
+    const outputDir = document.getElementById('output-dir').value.trim();
+    const convertBtn = document.getElementById('convert-btn');
+    const clearBtn = document.getElementById('clear-btn');
+
+    convertBtn.disabled = true;
+    clearBtn.disabled = true;
+
+    // Show progress window, hide results
+    document.getElementById('progress-window').style.display = 'block';
+    document.getElementById('results-window').style.display = 'none';
+    document.getElementById('log-box').innerHTML = '';
+    document.getElementById('results-body').innerHTML = '';
+
+    log(`Starting conversion of ${selectedFiles.length} file(s)...`, 'info');
+    document.getElementById('status-text').textContent = 'Converting…';
+
+    // Build FormData
+    const formData = new FormData();
+    for (const f of selectedFiles) formData.append('files', f);
+    if (outputDir) formData.append('outputDir', outputDir);
+
+    try {
+      const response = await fetch('/api/convert', { method: 'POST', body: formData });
+
+      if (!response.ok) {
+        const err = await response.json();
+        log(`Server error: ${err.error}`, 'err');
+        return;
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      const allResults = [];
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        const lines = buffer.split('\n');
+        buffer = lines.pop(); // keep incomplete line
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          let event;
+          try { event = JSON.parse(line.slice(6)); } catch { continue; }
+
+          if (event.type === 'start') {
+            log(`Processing ${event.total} file(s)…`, 'info');
+          } else if (event.type === 'progress') {
+            if (event.stage === 'checksum') {
+              log(`[${event.index}/${event.total}] ${event.filename} — computing SHA-256…`, 'info');
+            } else if (event.stage === 'converting') {
+              log(`[${event.index}/${event.total}] ${event.filename} — SHA-256: ${event.inputSha256}`, 'info');
+              log(`[${event.index}/${event.total}] ${event.filename} — converting…`, 'info');
+            }
+          } else if (event.type === 'result') {
+            const r = event.result;
+            allResults.push(r);
+            if (r.status === 'SUCCESS') {
+              log(`[${event.index}/${event.total}] ✓ ${r.filename} — ${r.totalPages} page(s) converted`, 'ok');
+            } else if (r.status === 'REJECTED_SCANNED_PDF') {
+              log(`[${event.index}/${event.total}] ⚠ ${r.filename} — REJECTED (scanned PDF)`, 'warn');
+            } else {
+              log(`[${event.index}/${event.total}] ✗ ${r.filename} — ERROR: ${r.error}`, 'err');
+            }
+          } else if (event.type === 'done') {
+            renderResults(allResults);
+            const ok  = allResults.filter(r => r.status === 'SUCCESS').length;
+            const rej = allResults.filter(r => r.status === 'REJECTED_SCANNED_PDF').length;
+            const err = allResults.filter(r => r.status === 'ERROR').length;
+            log(`\nDone — ${ok} succeeded, ${rej} rejected, ${err} errored.`, 'ok');
+            document.getElementById('status-text').textContent =
+              `Done: ${ok} succeeded, ${rej} rejected, ${err} errored`;
+          }
+        }
+      }
+    } catch (err) {
+      log(`Unexpected error: ${err.message}`, 'err');
+    } finally {
+      convertBtn.disabled = false;
+      clearBtn.disabled = false;
+    }
+  }
+
+  // ── Results table ──────────────────────────────────────────────────────────
+  function truncateHash(h) {
+    return h ? h.slice(0, 12) + '…' : '—';
+  }
+
+  function renderResults(results) {
+    const tbody = document.getElementById('results-body');
+    tbody.innerHTML = '';
+
+    results.forEach(r => {
+      const tr = document.createElement('tr');
+
+      let statusHtml = '';
+      if (r.status === 'SUCCESS')              statusHtml = `<span class="status-ok">✓ SUCCESS</span>`;
+      else if (r.status === 'REJECTED_SCANNED_PDF') statusHtml = `<span class="status-rej">⚠ REJECTED</span>`;
+      else                                     statusHtml = `<span class="status-err">✗ ERROR</span>`;
+
+      const dlHtml = r.mdPath
+        ? `<a class="dl-link" onclick="downloadFile('${r.mdPath.replace(/'/g, "\\'")}')">📥 Download</a>`
+        : '—';
+
+      tr.innerHTML = `
+        <td title="${r.filename}">${r.filename}</td>
+        <td>${statusHtml}${r.error ? `<br><small style="color:#a00">${r.error.slice(0,60)}</small>` : ''}</td>
+        <td>${r.totalPages ?? '—'}</td>
+        <td class="hash" title="${r.inputSha256 || ''}">${truncateHash(r.inputSha256)}</td>
+        <td class="hash" title="${r.outputSha256 || ''}">${truncateHash(r.outputSha256)}</td>
+        <td>${dlHtml}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    document.getElementById('results-window').style.display = 'block';
+  }
+
+  function downloadFile(filePath) {
+    window.location.href = `/api/download?path=${encodeURIComponent(filePath)}`;
+  }
+</script>
+
+</body>
+</html>

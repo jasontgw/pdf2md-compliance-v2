@@ -1,0 +1,52 @@
+{
+  "name": "pdf2md-compliance",
+  "version": "2.0.0",
+  "description": "Local-only, offline CLI tool to convert PDF files to Markdown with compliance-grade extensions (page markers, checksums, manifests, scanned-PDF rejection). Includes a Windows 95-styled local web GUI. No network calls. All processing runs on the local filesystem.",
+  "main": "src/index.js",
+  "bin": {
+    "pdf2md-compliance": "./src/cli.js"
+  },
+  "scripts": {
+    "start": "node src/cli.js",
+    "gui": "node gui/server.mjs",
+    "test": "node --experimental-vm-modules node_modules/.bin/jest --runInBand",
+    "lint": "node scripts/check-version-ranges.js",
+    "pretest": "node scripts/check-version-ranges.js"
+  },
+  "dependencies": {
+    "@opendocsg/pdf2md": "0.2.2",
+    "commander": "12.1.0",
+    "express": "4.19.2",
+    "multer": "1.4.5-lts.1",
+    "pdfjs-dist": "4.4.168",
+    "pino": "9.3.2",
+    "pino-pretty": "11.2.1",
+    "slugify": "1.6.6"
+  },
+  "devDependencies": {
+    "jest": "29.7.0",
+    "pdf-lib": "1.17.1"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "license": "MIT",
+  "keywords": [
+    "pdf",
+    "markdown",
+    "compliance",
+    "cli",
+    "gui",
+    "offline",
+    "local",
+    "pdf2md"
+  ],
+  "author": "pdf2md-compliance contributors",
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ],
+    "testTimeout": 60000
+  }
+}
