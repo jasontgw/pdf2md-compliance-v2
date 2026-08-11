@@ -208,7 +208,14 @@ The browser opens automatically. Press `Ctrl+C` in the terminal to stop the serv
 | **Batch conversion** | All selected files are processed sequentially |
 | **Live progress log** | Displayed in a retro terminal-style window with colour-coded status |
 | **Results table** | Shows status, page count, input and output checksums, and a download link for each `.md` file |
-| **Custom output folder** | Leave blank to use the default `~/pdf2md-output` |
+| **Output-folder chooser** | Click **Browse…** to open the native macOS folder chooser; the selected path is filled automatically without typing |
+| **Default output folder** | Leave the chooser unselected to use `~/pdf2md-output` |
+
+### Selecting an output folder
+
+Under **Output Settings**, click **Browse…**. The app opens the standard macOS folder chooser. Select the destination folder and click **Choose**; the selected location appears in the GUI and is used for the conversion. You may cancel the chooser at any time, in which case the app retains the existing selection or uses the default output folder if none was selected.
+
+> The folder chooser is available because this GUI runs locally on macOS and listens only on `127.0.0.1`. No folder path or document is transmitted to an external server.
 
 ---
 

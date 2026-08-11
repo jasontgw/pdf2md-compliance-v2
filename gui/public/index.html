@@ -141,6 +141,8 @@
       font-family: inherit;
       background: #fff;
     }
+    #browse-output-btn { min-width: 64px; }
+    .setting-help { margin-left: 86px; color: #555; font-size: 10px; }
 
     /* ── Buttons ──────────────────────────────────────────────────────────── */
     .btn-row { display: flex; gap: 6px; justify-content: flex-end; margin-top: 10px; }
@@ -335,8 +337,10 @@
       <legend>Output Settings</legend>
       <div class="row">
         <label for="output-dir">Output folder:</label>
-        <input type="text" id="output-dir" placeholder="Default: ~/pdf2md-output" />
+        <input type="text" id="output-dir" placeholder="Default: ~/pdf2md-output" readonly aria-label="Selected output folder" />
+        <button id="browse-output-btn" type="button" onclick="chooseOutputFolder()">Browse…</button>
       </div>
+      <p class="setting-help">Click Browse… to select a folder. Leave unselected to use the default.</p>
     </fieldset>
 
     <!-- Action buttons -->
@@ -475,6 +479,43 @@
     document.getElementById('log-box').innerHTML = '';
     document.getElementById('results-body').innerHTML = '';
     document.getElementById('status-text').textContent = 'Ready';
+  }
+
+  // ── Output folder picker ───────────────────────────────────────────────────
+  // The browser cannot safely reveal an absolute folder path itself. Instead,
+  // this local-only app asks the server to show the macOS native folder chooser.
+  async function chooseOutputFolder() {
+    const browseButton = document.getElementById('browse-output-btn');
+    const outputDirInput = document.getElementById('output-dir');
+    const originalLabel = browseButton.textContent;
+
+    browseButton.disabled = true;
+    browseButton.textContent = 'Opening…';
+    document.getElementById('status-text').textContent = 'Choose an output folder in the macOS dialog…';
+
+    try {
+      const response = await fetch('/api/select-output-folder', { method: 'POST' });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Unable to open the folder chooser.');
+      }
+
+      if (data.cancelled) {
+        document.getElementById('status-text').textContent = 'Folder selection cancelled';
+        return;
+      }
+
+      outputDirInput.value = data.outputDir;
+      outputDirInput.title = data.outputDir;
+      document.getElementById('status-text').textContent = 'Output folder selected';
+    } catch (err) {
+      alert(`Could not select an output folder: ${err.message}`);
+      document.getElementById('status-text').textContent = 'Unable to select output folder';
+    } finally {
+      browseButton.disabled = false;
+      browseButton.textContent = originalLabel;
+    }
   }
 
   // File input change

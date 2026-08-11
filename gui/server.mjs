@@ -4,10 +4,11 @@
  * Local-only Express server for the pdf2md-compliance-v2 GUI.
  *
  * Endpoints:
- *   POST /api/convert   — Upload one or more PDFs, compute SHA-256 checksums,
- *                         run conversion, return results as JSON (streamed via SSE).
- *   GET  /api/download  — Download a converted .md file by path.
- *   GET  /              — Serve the frontend (public/index.html).
+ *   POST /api/select-output-folder — Open the native macOS folder chooser.
+ *   POST /api/convert              — Upload one or more PDFs, compute SHA-256
+ *                                    checksums, run conversion, and stream results.
+ *   GET  /api/download             — Download a converted .md file by path.
+ *   GET  /                          — Serve the frontend (public/index.html).
  */
 
 import express from 'express';
@@ -16,8 +17,11 @@ import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import { execSync } from 'child_process';
+import { execFile, execSync } from 'child_process';
 import { fileURLToPath } from 'url';
+import { promisify } from 'util';
+
+const execFileAsync = promisify(execFile);
 
 // ── Path helpers ──────────────────────────────────────────────────────────────
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -51,6 +55,41 @@ function sha256File(filePath) {
   const buf = fs.readFileSync(filePath);
   return crypto.createHash('sha256').update(buf).digest('hex');
 }
+
+// ── POST /api/select-output-folder ───────────────────────────────────────────
+// Opens the native macOS folder chooser. This endpoint is deliberately available
+// only from the local GUI server (bound to 127.0.0.1) and never transmits paths
+// or files over the network.
+app.post('/api/select-output-folder', async (_req, res) => {
+  if (process.platform !== 'darwin') {
+    return res.status(501).json({
+      error: 'The native folder picker is available only on macOS.',
+    });
+  }
+
+  try {
+    const { stdout } = await execFileAsync('osascript', [
+      '-e',
+      'POSIX path of (choose folder with prompt "Select the pdf2md-compliance output folder")',
+    ]);
+    const outputDir = stdout.trim();
+
+    if (!outputDir) {
+      return res.json({ cancelled: true });
+    }
+
+    return res.json({ outputDir });
+  } catch (err) {
+    // AppleScript returns exit code 1 when the user cancels the chooser.
+    if (err?.code === 1) {
+      return res.json({ cancelled: true });
+    }
+
+    return res.status(500).json({
+      error: `Unable to open the macOS folder chooser: ${err.message}`,
+    });
+  }
+});
 
 // ── POST /api/convert ─────────────────────────────────────────────────────────
 // Accepts multipart/form-data with:
