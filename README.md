@@ -53,62 +53,109 @@ Built on the [`@opendocsg/pdf2md`](https://github.com/opengovsg/pdf2md) library 
 
 ## Setup on macOS / Apple Silicon
 
-### 0. Check if nvm exist on macOS
+This project is stored in a **private GitHub repository**, so a first-time setup must include GitHub authentication before cloning. Follow the steps below in order. You only need to complete the Homebrew, GitHub CLI, and Node.js installation steps once per Mac.
 
-Open Terminal on macOS
+| Step | Purpose | Required once per Mac? |
+|---|---|---|
+| 1 | Install Homebrew and configure its shell path | Yes |
+| 2 | Install GitHub CLI (`gh`) | Yes |
+| 3 | Authenticate GitHub CLI in the browser | Yes, unless credentials are removed |
+| 4 | Install Node.js v22 | Yes |
+| 5 | Clone this private repository and install dependencies | Once per local copy |
+
+### 1. Install Homebrew
+
+[Homebrew](https://brew.sh/) is used to install the GitHub CLI. Run the installer in Terminal:
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+On an Apple Silicon Mac, add Homebrew to the `zsh` shell path, then load the setting into the current Terminal session:
+
+```bash
+echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zshrc
+eval "$(/opt/homebrew/bin/brew shellenv)"
+```
+
+Confirm that Homebrew is available:
+
+```bash
+brew --version
+```
+
+### 2. Install and authenticate GitHub CLI
+
+Install GitHub CLI:
+
+```bash
+brew install gh
+```
+
+Then authenticate it with the GitHub account that has access to `jasontgw/pdf2md-compliance-v2`:
+
+```bash
+gh auth login
+```
+
+When prompted, choose **GitHub.com**, then **HTTPS**, then **Login with a web browser**. Complete the browser authorisation flow and return to Terminal. Confirm the session is active:
+
+```bash
+gh auth status
+```
+
+> **Important:** Do not use a GitHub account password when cloning over HTTPS. GitHub does not support password authentication for Git operations. Using `gh auth login` stores the required credential securely for subsequent private-repository operations.
+
+### 3. Install Node.js (arm64 native build)
+
+Use [nvm](https://github.com/nvm-sh/nvm) or download directly from [nodejs.org](https://nodejs.org). The following installs Node.js v22 through nvm:
 
 ```bash
 # Install nvm
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
 
-# Check if .zshrc file exist on macOS
+# Start a new Terminal window, or load the nvm configuration now
 source ~/.zshrc
 
-# If output message says: "source: no such file or directory: /Users/~/.zshrc", create this missing file
-touch ~/.zshrc
-
-# Manually add the nvm setup to that file
-echo 'export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion" # This loads nvm bash_completion' >> ~/.zshrc
-
-# Load the file
-touch ~/.zshrc
-
-# Verify nvm is working
-nvm --version
-
-# If a version number displays, such as 0.39.7, then proceed to next part
-```
-
-
-### 1. Install Node.js (arm64 native build)
-
-Use [nvm](https://github.com/nvm-sh/nvm) or download directly from [nodejs.org](https://nodejs.org):
-
-```bash
-# Using nvm (recommended)
+# Install and activate Node.js v22
 nvm install 22
 nvm use 22
 
-# Verify you have the arm64 native build (not Rosetta x64)
-node -p process.arch   # should print: arm64
+# Verify the native Apple Silicon build
+node -p process.arch   # expected output: arm64
 ```
 
-### 2. Clone and install
+If `source ~/.zshrc` reports that the file does not exist, create it first with `touch ~/.zshrc`, then run the nvm installation command again.
+
+### 4. Clone the private repository and install dependencies
+
+Use GitHub CLI to clone the repository. This uses the authenticated session created in step 2 and avoids the HTTPS username/token error:
 
 ```bash
-git clone https://github.com/jasontgw/pdf2md-compliance-v2.git
+gh repo clone jasontgw/pdf2md-compliance-v2
 cd pdf2md-compliance-v2
 npm install
 ```
 
-### 3. Make the CLI globally available (optional)
+The `npm install` command recreates the required local `node_modules/` directory from `package.json` and `package-lock.json`. It is normal that `node_modules/` is not stored in GitHub.
+
+### 5. Launch the GUI or use the CLI
+
+For the graphical interface, double-click `Start GUI.command` in Finder. Alternatively, start it from Terminal:
 
 ```bash
-npm link
-# Now you can run: pdf2md-compliance --help
+npm run gui
 ```
+
+To verify the installation through the command-line interface:
+
+```bash
+npm test
+npm link
+pdf2md-compliance --help
+```
+
+The `npm link` command is optional; it makes `pdf2md-compliance` available as a command from any directory on your Mac.
 
 ---
 
